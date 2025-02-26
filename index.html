@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Skin Tone & Undertone API Test</title>
+</head>
+<body>
+    <h2>Upload Image or Take a Picture</h2>
+    
+    <!-- Upload Image -->
+    <input type="file" id="imageInput" accept="image/*" onchange="previewImage()">
+
+    <!-- Upload & Predict -->
+    <button onclick="sendImage()">Upload & Predict</button>
+    
+    <!-- Take Picture -->
+    <button onclick="captureImage()">Take Picture</button>
+    <video id="video" width="300" height="200" autoplay></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+
+    <!-- Image Preview -->
+    <h3>Original Image:</h3>
+    <img id="imagePreview" src="" alt="Selected Image" style="max-width: 300px; display: none;">
+
+    <!-- Prediction Result -->
+    <h3>Results:</h3>
+    <p id="result"></p>
+
+    <script>
+        function previewImage() {
+            const input = document.getElementById('imageInput');
+            const preview = document.getElementById('imagePreview');
+
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.style.display = "block";
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        async function sendImage() {
+            const input = document.getElementById('imageInput');
+            if (input.files.length === 0) {
+                alert("Please select an image first.");
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append("file", input.files[0]);
+
+            const response = await fetch("http://127.0.0.1:8000/predict", {
+                method: "POST",
+                body: formData
+            });
+
+            const data = await response.json();
+            document.getElementById("result").innerText = `
+            Skin Tone: ${data.predicted_skin_tone}, 
+            Undertone: ${data.predicted_undertone}`;
+        }
+
+        function captureImage() {
+            const video = document.getElementById("video");
+            const canvas = document.getElementById("canvas");
+            const context = canvas.getContext("2d");
+            const preview = document.getElementById('imagePreview');
+
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+            const imageDataURL = canvas.toDataURL("image/jpeg");
+            preview.src = imageDataURL;
+            preview.style.display = "block";
+
+            canvas.toBlob(async (blob) => {
+                const formData = new FormData();
+                formData.append("file", blob, "capture.jpg");
+
+                const response = await fetch("http://127.0.0.1:8000/predict", {
+                    method: "POST",
+                    body: formData
+                });
+
+                const data = await response.json();
+                document.getElementById("result").innerText = `
+                Skin Tone: ${data.predicted_skin_tone}, 
+                Undertone: ${data.predicted_undertone}`;
+            }, "image/jpeg");
+        }
+
+        navigator.mediaDevices.getUserMedia({ video: true }).then(stream => {
+            document.getElementById("video").srcObject = stream;
+        }).catch(err => console.error("Camera access denied", err));
+    </script>
+</body>
+</html>
