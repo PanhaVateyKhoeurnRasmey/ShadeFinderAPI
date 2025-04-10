@@ -1,5 +1,4 @@
 .vscode/
 .conda/
 .pytest_cache/
-models/
 __pycache__/

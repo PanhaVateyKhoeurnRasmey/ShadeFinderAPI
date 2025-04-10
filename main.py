@@ -9,9 +9,11 @@ import pickle
 import io
 import cv2
 from fastapi.middleware.cors import CORSMiddleware
+import uvicorn
 
 app = FastAPI()
 
+# Setting Up FastAPI & CORS (cross-origin resource sharing which allow frontend and backend to communicate)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -29,6 +31,7 @@ with open("models/undertone_model_optimized.pkl", "rb") as f:
 detector = MTCNN()
 
 # Preprocessing Functions
+#Skin Tone
 def load_and_preprocess_image(image: Image.Image):
     img_array = np.array(image)
     faces = detector.detect_faces(img_array)
@@ -45,6 +48,7 @@ def load_and_preprocess_image(image: Image.Image):
     img_array = np.array(cropped_image) / 255.0
     return np.expand_dims(img_array, axis=0)
 
+# Undertone
 def preprocess_image_undertone(image: Image.Image):
     image = image.resize((64, 64))
     img_array = np.array(image) / 255.0
@@ -125,3 +129,6 @@ def capture_image():
         )
     except Exception as e:
         return JSONResponse(content={"error": str(e)}, status_code=500)
+    
+if __name__ == "__main__":
+    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
